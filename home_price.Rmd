@@ -1,0 +1,130 @@
+---
+title: "Home Prices EDA and Machine Learning"
+output: html_document
+---
+
+```{r setup, include=FALSE, eval=TRUE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#### Add Libraries
+```{r}
+library(data.table)
+library(ggplot2)
+library(ggthemes)
+library(glmnet)
+library(plotly)
+theme_set(theme_bw())
+```
+
+#### Load in dataset
+```{r}
+trainPrice <- fread("trainPrice.csv")
+```
+
+#### First few rows
+```{r}
+head(trainPrice, 5)
+```
+
+#### Structure of the dataset
+```{r}
+str(trainPrice)
+```
+
+
+#### Randomize the rows
+```{r}
+set.seed(42)
+rows <- sample(nrow(trainPrice))
+trainPrice <- trainPrice[rows, ]
+```
+
+
+#### Linear model of price and city (the first 50000 observations)
+```{r}
+ggplot(head(trainPrice, 50000), aes(x = city
+, y=transaction_real_price)) +
+  geom_point(alpha = 0.4)+
+  stat_smooth(
+    method = "lm",
+    color = "#C42126",
+    se = FALSE,
+    size = 1
+  )
+```
+
+#### Set city and room count as factor
+```{r}
+trainPrice <- trainPrice[, city:=as.factor(city)]
+trainPrice <- trainPrice[, room_count:=as.factor(room_count)]
+```
+
+#### remove null values
+```{r}
+trainPrice <- trainPrice[!is.na(room_count)]
+```
+
+
+
+#### Barchart showing real price and city
+```{r}
+ggplot(trainPrice, aes(x=city, y = transaction_real_price)) + 
+  geom_bar(stat = "summary", fun = "mean")+
+  scale_y_continuous(labels = function(x) format(x, scientific = FALSE)) +
+  theme_classic()
+```
+
+#### Barchart showing real price and room count
+```{r}
+ggplot(trainPrice, aes(x=room_count, y = transaction_real_price)) + 
+  geom_bar(stat = "summary", fun = "mean")+
+  scale_y_continuous(labels = function(x) format(x, scientific = FALSE)) +
+  theme_classic()
+```
+
+#### Linear regression model of exclusive use area vs real price
+```{r}
+ggplot(trainPrice, aes(x = exclusive_use_area, y=transaction_real_price)) +
+  geom_point(alpha = 0.4)
+```
+
+
+
+####Plotly Map
+
+##### 1 is seoul
+##### 0 is Busan
+
+##### Styling
+<!-- g <- list( -->
+<!--   fitbounds = "locations", -->
+<!--   height=300, -->
+<!--   zoom=10, -->
+<!--   scope = 'asia', -->
+<!--   lataxis_range=(-50,20), -->
+<!--   lonaxis_range=(0, 200) -->
+<!--  # visible = FALSE, -->
+<!--  # showland = TRUE, -->
+<!--  # landcolor = toRGB("gray95"), -->
+<!--  # subunitcolor = toRGB("gray85"), -->
+<!--  # countrycolor = toRGB("gray85"), -->
+<!--  # countrywidth = 0.5, -->
+<!--   #subunitwidth = 0.5 -->
+<!-- ) -->
+
+##### Figure
+<!-- fig <- plot_geo(small_set, lat = ~latitude, lon = ~longitude) -->
+
+<!-- fig <- fig %>% add_markers( -->
+<!--   text = ~paste(latitude, longitude, room_count, paste("Price:", transaction_real_price), sep = "<br />"), -->
+<!--   color = ~transaction_real_price, symbol = I("square"), size = I(8), hoverinfo = "text" -->
+<!-- ) -->
+<!-- fig <- fig %>% colorbar(title = "Incoming flights<br />February 2011") -->
+<!-- fig <- fig %>% layout( -->
+<!--   title = 'Most trafficked US airports<br />(Hover for airport)', geo = g -->
+<!-- ) -->
+
+<!-- fig -->
+
+
