@@ -134,7 +134,9 @@ ggplot(Price, aes(x = exclusive_use_area, y=transaction_real_price)) +
 #### Spliting the data in Train(65%) and Test(35%)
 ```{r}
 Price[, test:=0]
-Price[sample(nrow(dd), 100000), test:=1]
+Price[sample(nrow(Price), 560519), test:=1] #setting 35% aside as test data
+Price.test <- Price[test==1]
+Price.train <- Price[test==0]
 
 
 
