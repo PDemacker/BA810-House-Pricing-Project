@@ -7,7 +7,6 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-Just trying to see pushing
 
 #### Add Libraries
 ```{r}
