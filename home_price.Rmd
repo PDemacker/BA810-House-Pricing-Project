@@ -15,36 +15,39 @@ library(ggplot2)
 library(ggthemes)
 library(glmnet)
 library(plotly)
+
 theme_set(theme_bw())
+install.packages('bit64')
 ```
 
 #### Load in dataset
 ```{r}
-trainPrice <- fread("trainPrice.csv")
+#Price <- fread("trainPrice.csv")
+Price <- fread("/Users/paulademacker/Documents/USA/Boston U/2. term/BA810/Team Project/trainPrice.csv")
 ```
 
 #### First few rows
 ```{r}
-head(trainPrice, 5)
+head(Price, 5)
 ```
 
 #### Structure of the dataset
 ```{r}
-str(trainPrice)
+str(Price)
 ```
 
 
 #### Randomize the rows
 ```{r}
 set.seed(42)
-rows <- sample(nrow(trainPrice))
-trainPrice <- trainPrice[rows, ]
+rows <- sample(nrow(Price))
+Price <- Price[rows, ]
 ```
 
 
 #### Linear model of price and city (the first 50000 observations)
 ```{r}
-ggplot(head(trainPrice, 50000), aes(x = city
+ggplot(head(Price, 50000), aes(x = city
 , y=transaction_real_price)) +
   geom_point(alpha = 0.4)+
   stat_smooth(
@@ -57,20 +60,20 @@ ggplot(head(trainPrice, 50000), aes(x = city
 
 #### Set city and room count as factor
 ```{r}
-trainPrice <- trainPrice[, city:=as.factor(city)]
-trainPrice <- trainPrice[, room_count:=as.factor(room_count)]
+Price <- Price[, city:=as.factor(city)]
+Price <- Price[, room_count:=as.factor(room_count)]
 ```
 
 #### remove null values
 ```{r}
-trainPrice <- trainPrice[!is.na(room_count)]
+Price <- Price[!is.na(room_count)]
 ```
 
 
 
 #### Barchart showing real price and city
 ```{r}
-ggplot(trainPrice, aes(x=city, y = transaction_real_price)) + 
+ggplot(Price, aes(x=city, y = transaction_real_price)) + 
   geom_bar(stat = "summary", fun = "mean")+
   scale_y_continuous(labels = function(x) format(x, scientific = FALSE)) +
   theme_classic()
@@ -78,7 +81,7 @@ ggplot(trainPrice, aes(x=city, y = transaction_real_price)) +
 
 #### Barchart showing real price and room count
 ```{r}
-ggplot(trainPrice, aes(x=room_count, y = transaction_real_price)) + 
+ggplot(Price, aes(x=room_count, y = transaction_real_price)) + 
   geom_bar(stat = "summary", fun = "mean")+
   scale_y_continuous(labels = function(x) format(x, scientific = FALSE)) +
   theme_classic()
@@ -86,7 +89,7 @@ ggplot(trainPrice, aes(x=room_count, y = transaction_real_price)) +
 
 #### Linear regression model of exclusive use area vs real price
 ```{r}
-ggplot(trainPrice, aes(x = exclusive_use_area, y=transaction_real_price)) +
+ggplot(Price, aes(x = exclusive_use_area, y=transaction_real_price)) +
   geom_point(alpha = 0.4)
 ```
 
@@ -128,4 +131,26 @@ ggplot(trainPrice, aes(x = exclusive_use_area, y=transaction_real_price)) +
 
 <!-- fig -->
 
+#### Spliting the data in Train(65%) and Test(35%)
+```{r}
+Price[, test:=0]
+Price[sample(nrow(dd), 100000), test:=1]
 
+
+
+
+```
+
+#### Ridge Regression
+```{r}
+
+
+
+
+
+```
+#### Lasso Regression
+```{r}
+
+
+```
