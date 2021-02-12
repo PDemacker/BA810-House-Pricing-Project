@@ -22,7 +22,8 @@ theme_set(theme_bw())
 
 #### Load in dataset
 ```{r}
-Price <- fread("trainPrice.csv")
+#Price <- fread("trainPrice.csv")
+Price <- fread("/Users/paulademacker/Documents/USA/Boston U/2. term/BA810/Team Project/trainPrice.csv")
 ```
 
 #### First few rows
@@ -302,6 +303,9 @@ y.test <- dd.test$transaction_real_price
 # create our predictors
 f1 <- as.formula(transaction_real_price ~ front_door_structure_stairway)
 
+# matrix with x values
+x1.train.sample <- model.matrix(f1, dd.train)
+x1.test <- model.matrix(f1, dd.test)
 
 # get columns (for forward regression later)
 #for (col in names(Price))
@@ -333,8 +337,57 @@ str(dd.train)
 
 class(Price$transaction_real_price)
 ```
+### Ridge Regression
+```{r}
+fit.ridge <- cv.glmnet(x1.train.sample, y.train, alpha = 0)
 
+predict(fit.ridge,
+        type = "coefficients",
+        s = fit.ridge$lambda)
 
+to_plot <- data.table(
+  lambda = fit.ridge$lambda,
+  coef_value = ridge.coef[2, ]
+)
+ggplot(to_plot, aes(log(lambda), coef_value)) +
+  geom_line() +
+  theme_few()
+
+yhat.train.ridge <- predict(fit.ridge, x1.train.sample, s = fit.ridge$lambda.min)
+mse.train.ridge <- mean((y.train - yhat.train.ridge)^2)
+
+yhat.test.ridge <- predict(fit.ridge, x1.test.sample, s = fit.ridge$lambda.min)
+mse.test.ridge <- mean((y.test - yhat.test.ridge)^2)
+
+print(mse.train.ridge)
+print(mse.test.ridge)
+```
+
+#### Lasso Regression
+```{r}
+fit.lasso <- cv.glmnet(x1.train.sample, y.train, alpha = 1)
+
+predict(fit.lasso,
+        type = "coefficients",
+        s = fit.lasso$lambda)
+
+to_plot <- data.table(
+  lambda = fit.lasso$lambda,
+  coef_value = lasso.coef[2, ]
+)
+ggplot(to_plot, aes(log(lambda), coef_value)) +
+  geom_line() +
+  theme_few()
+
+yhat.train.lasso <- predict(fit.lasso, x1.train.sample, s = fit.lasso$lambda.min)
+mse.train.lasso <- mean((y.train.sample - yhat.train.lasso)^2)
+
+yhat.test.lasso <- predict(fit.lasso, x1.test.sample, s = fit.lasso$lambda.min)
+mse.test.lasso <- mean((y.test.sample - yhat.test.lasso)^2)
+
+print(mse.train.lasso)
+print(mse.test.lasso)
+```
 
 
 
