@@ -346,7 +346,9 @@ y_test <- dd_test$transaction_real_price
 
 
 # create our predictors
-# throwing some variables seem useful 
+
+# throwing some variables that seem to make sense to give it a try
+
 f1 <- as.formula(transaction_real_price ~ year_of_completion + exclusive_use_area +floor + total_parking_capacity_in_site+ total_household_count_in_sites +apartment_building_count_in_sites +heat_type + heat_fuel +supply_area + total_household_count_of_area_type +room_count +bathroom_count+front_door_structure)
 
 # matrix with x values
@@ -384,7 +386,7 @@ str(dd_train)
 class(Price$transaction_real_price)
 ```
 
-# Forward Selection
+#### Forward Selection
 ```{r}
 xnames <- colnames(dd_train)
 xnames <- xnames[!xnames %in% c("key","apartment_id","transaction_year_month","latitude","longitude","address_by_law","room_id")]
@@ -455,15 +457,58 @@ ggplot(log_fw, aes(seq_along(xname), mse_test)) +
 ```{r}
 print(log_fw)
 ```
+#### The way above has some diffculity showing equations/equations,so I tried another way
+
+```{r}
+
+# Set up repeated k-fold cross-validation
+train.control <- trainControl(method = "cv", number = 10)
+# Train the model
+step.model <- train(transaction_real_price ~., data = dd_train,
+                    method = "leapForward", 
+                    tuneGrid = data.frame(nvmax = 1:24),
+                    trControl = train.control
+                    )
+step.model$results
+```
+```{r}
+step.model$bestTune
+summary(step.model$finalModel)
+```
+
+#### Backward selection
+```{r}
+
+# Set up repeated k-fold cross-validation
+train.control <- trainControl(method = "cv", number = 10)
+# Train the model
+step.model <- train(transaction_real_price ~., data = dd_train,
+                    method = "leapBackward", 
+                    tuneGrid = data.frame(nvmax = 1:24),
+                    trControl = train.control
+                    )
+step.model$results
+```
+
+
+```{r}
+step.model$bestTune
+summary(step.model$finalModel)
+```
+
+#### This is another package doing forward/backward, however, having error
+
 ```{r}
 library(olsrr)
-model <- lm(transaction_real_price ~ ., data = dd_train)
+model <- lm(y_train ~ ., data = dd_train)
+print(model)
+
 ols_step_forward_p(model)
 ```
 
 
 ```{r}
-model <- lm(y ~ ., data = dd_train)
+model <- lm(transaction_real_price ~ ., data = dd_train)
 k <- ols_step_forward_p(model)
 plot(k)
 ```
@@ -471,12 +516,12 @@ plot(k)
 
 ```{r}
 # stepwise forward regression
-model <- lm(y ~ ., data = dd_train)
+model <- lm(transaction_real_price ~ ., data = dd_train)
 ols_step_forward_p(model, details = TRUE)
 ```
 
 
-
+#### Sylar's part done till here, Please feel free to build upon this version
 
 
 
