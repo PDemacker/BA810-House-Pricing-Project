@@ -30,8 +30,8 @@ theme_set(theme_bw())
 #### Load in dataset
 ```{r}
 #install.packages('bit64')
-#Price <- fread("trainPrice.csv")
-Price <- fread("/Users/paulademacker/Documents/USA/Boston U/2. term/BA810/Team Project/trainPrice.csv")
+Price <- fread("trainPrice.csv")
+#Price <- fread("/Users/paulademacker/Documents/USA/Boston U/2. term/BA810/Team Project/trainPrice.csv")
 ```
 
 #### First few rows
