@@ -23,7 +23,11 @@ library(magrittr)
 library(dplyr)
 library(tidyverse)
 library(scales)
+library(tree)
 library(randomForest)
+library(rpart)
+library(rpart.plot)
+
 theme_set(theme_bw())
 ```
 
@@ -45,6 +49,7 @@ There are a total of 1,601,458 observations
 ```{r}
 str(Price)
 transform(Price, transaction_real_price = as.numeric(transaction_real_price))
+#summary(Price)
 ```
 
 
@@ -102,6 +107,8 @@ unique(Price$front_door_structure)
 ```{r}
 Price[front_door_structure == '-'][, .N]
 ```
+
+
 ##### count of values that are empty strings
 ```{r}
 Price[front_door_structure == ''][, .N]
@@ -206,7 +213,7 @@ str(Price)
 
 #### Barchart showing real price and city
 ```{r}
-ggplot(Price, aes(x=city, y = transaction_real_price)) + 
+ggplot(Price, aes(x=as.factor(city), y = transaction_real_price)) + 
   geom_bar(stat = "summary", fun = "mean")+
   scale_y_continuous(labels = function(x) format(x, scientific = FALSE)) +
   theme_classic()
@@ -319,8 +326,6 @@ Price <- Price[rows, ]
 # Linear Regression
 ```{r}
 Price[, transaction_real_price := as.numeric(transaction_real_price)]
-
-
 # we want to select random columns adn set the seed to get consistant results
 set.seed(810)
 
@@ -380,12 +385,13 @@ paste("Linear Regression Test MSE",mse_test_lm1)
 str(dd_train)
 
 
-
 (y_test[0] - yhat_test_lm1[0])
 
 
 class(Price$transaction_real_price)
 ```
+
+
 
 #### Forward Selection
 ```{r}
@@ -394,7 +400,7 @@ xnames <- xnames[!xnames %in% c("key","apartment_id","transaction_year_month","l
 fit_fw <- lm(transaction_real_price ~ 1, data = dd_train)
 yhat_train <- predict(fit_fw, dd_train)
 yhat_test<- predict(fit_fw, dd_test)
-mse_train <-mean((dd_train$transaction_real_price - yhat_train)^2)
+mse_train <- mean((dd_train$transaction_real_price - yhat_train)^2)
 mse_test<-mean((dd_test$transaction_real_price - yhat_test)^2)
 xname <- "intercept"
 
@@ -472,6 +478,12 @@ step.model <- train(transaction_real_price ~., data = dd_train,
                     )
 step.model$results
 ```
+```{r}
+str(min(step.model$results$RMSE
+    ))
+```
+
+
 ```{r}
 step.model$bestTune
 summary(step.model$finalModel)
@@ -567,6 +579,129 @@ cat(" Test MSE: ",mse.test.lasso)
 #Test MSE is slightly higher than the Train MSE but better than the Ridge Regression
 
 ```
+
+
+#### Decision Tree
+```{r}
+set.seed(217)
+train = sample(1:nrow(Price),nrow(Price)*3/4)
+tree.testy = Price[-train,transaction_real_price]
+tree.test = Price[-train]
+
+tree.price = tree(transaction_real_price ~ .,Price,subset = train)
+summary(tree.price)
+```
+```{r}
+#plot(tree.price)
+#text(tree.price,pretty = 0)
+# Not exactly nice graph
+# Prune Tree
+cv.price = cv.tree(tree.price)
+plot(cv.price$size,cv.price$dev, type = "b")
+cv.price
+# size = 14 have the lowest cv error
+# which seems like there is no much to prune the decision tree
+```
+
+```{r}
+#Test MSE
+tree.yhat = predict(tree.price,newdata=tree.test)
+mean((tree.yhat - tree.testy)^2) 
+``` 
+
+
+```{r}
+#Lecture Method to deal with decision tree
+set.seed(217)
+tree.price.lec <- rpart(transaction_real_price ~ ., Price,subset = train,
+                    control = rpart.control(cp=0.01))
+rpart.plot(tree.price.lec,type = 1)
+
+plotcp(tree.price)
+```
+
+
+
+
+#### Bagging
+```{r}
+library(randomForest)
+set.seed(217)
+test.mse = c()
+for (i in seq(1,5)) {
+train = sample(1:nrow(Price),(nrow(Price)/100)*i)
+tree.testy = Price[-train,transaction_real_price]
+tree.test = Price[-train]
+bag.price = randomForest(transaction_real_price ~ ., data = Price, subset = train, mtry = 24, importance = TRUE)
+yhat.bag = predict(bag.price, newdata = tree.test)
+test.mse = c(test.mse,mean((tree.testy-yhat.bag)^2))
+}
+test.mse 
+
+```
+
+```{r}
+plot(x=seq(1,5),test.mse)
+```
+
+#### Random Forest
+```{r}
+
+train = sample(1:nrow(Price),(nrow(Price)/100))
+tree.testy = Price[-train,transaction_real_price]
+tree.test = Price[-train]
+rf.price = randomForest(transaction_real_price ~ ., data = Price, subset = train, mtry = 8, importance = TRUE)
+yhat.rf = predict(rf.price, newdata = tree.test)
+mean((tree.testy-yhat.rf)^2)
+
+```
+
+```{r}
+importance(rf.price)
+```
+
+```{r}
+varImpPlot(rf.price)
+```
+
+#### Boosting
+```{r}
+library(gbm)
+set.seed(217)
+train_sample = sample(1:nrow(Price),(nrow(Price)/10))
+tree.testy_sample = Price[-train_sample,transaction_real_price]
+boost.price = gbm(transaction_real_price ~ ., data = Price[train_sample,], distribution = "gaussian", n.trees = 5000, interaction.depth = 4 )
+summary(boost.price)
+```
+
+```{r}
+#Evaluate boosted tree model
+yhat.boost = predict(boost.price, newdata = Price[-train_sample,], n.trees = 5000)
+mean((tree.testy_sample - yhat.boost)^2)
+```
+
+
+
+
+```{r}
+set.seed(217)
+tree.price <- rpart(transaction_real_price ~ ., Price,subset = train,
+                    control = rpart.control(cp=0.01))
+rpart.plot(tree.price,type = 1)
+```
+
+
+
+```{r}
+plotcp(tree.price)
+```
+
+```{r}
+#Prune tree
+ptree = prune(tree.price,cp = tree.price$cptable[which.min(tree.price$cptable[,"xerror"]),"CP"])
+rpart.plot(ptree,type = 1)
+```
+
 
 
 
