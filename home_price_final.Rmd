@@ -34,8 +34,8 @@ theme_set(theme_bw())
 #### Load in dataset
 ```{r}
 #install.packages('bit64')
-Price <- fread("trainPrice.csv")
-#Price <- fread("/Users/paulademacker/Documents/USA/Boston U/2. term/BA810/Team Project/trainPrice.csv")
+#Price <- fread("trainPrice.csv")
+Price <- fread("/Users/paulademacker/Documents/USA/Boston U/2. term/BA810/Team Project/trainPrice.csv")
 ```
 
 #### First few rows
@@ -357,6 +357,11 @@ summary(step.model$finalModel)
 
 #### Ridge Regression
 ```{r}
+f2 <- as.formula(transaction_real_price ~ apartment_id + city + transaction_year_month + transaction_date + year_of_completion + exclusive_use_area + floor + longitude + latitude + address_by_law + total_parking_capacity_in_site + total_household_count_in_sites + apartment_building_count_in_sites + tallest_building_in_sites + lowest_building_in_sites + heat_type + heat_fuel + room_id + supply_area + total_household_count_of_area_type + room_count + bathroom_count + front_door_structure)
+
+x1_train_sample <- model.matrix(f2, dd_train)[,-1]
+x1_test <- model.matrix(f2, dd_test)[,-1]
+
 fit.ridge <- cv.glmnet(x1_train_sample, y_train, alpha = 0)
 
 ridge.coef <- predict(fit.ridge,
@@ -379,7 +384,7 @@ mse.test.ridge <- mean((y_test - yhat.test.ridge)^2)
 
 cat("Train MSE: ",mse.train.ridge)
 cat(" Test MSE: ",mse.test.ridge)
-#Test MSE is minimal lower than Train MSE
+#Test MSE is minimal higher than Train MSE
 
 ```
 
