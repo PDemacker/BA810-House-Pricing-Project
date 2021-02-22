@@ -259,3 +259,45 @@ rows <- sample(nrow(Price))
 Price <- Price[rows, ]
 ```
 
+
+
+## Forward Selection
+```{r}
+
+# Set up repeated k-fold cross-validation
+train.control <- trainControl(method = "cv", number = 10)
+# Train the model
+step.model <- train(transaction_real_price ~., data = dd_train,
+                    method = "leapForward", 
+                    tuneGrid = data.frame(nvmax = 1:24),
+                    trControl = train.control
+                    )
+step.model$results
+```
+```{r}
+step.model$bestTune
+summary(step.model$finalModel)
+```
+
+## Backward selection
+```{r}
+
+# Set up repeated k-fold cross-validation
+train.control <- trainControl(method = "cv", number = 10)
+# Train the model
+step.model <- train(transaction_real_price ~., data = dd_train,
+                    method = "leapBackward", 
+                    tuneGrid = data.frame(nvmax = 1:24),
+                    trControl = train.control
+                    )
+step.model$results
+```
+
+
+```{r}
+step.model$bestTune
+summary(step.model$finalModel)
+```
+
+
+
