@@ -34,8 +34,8 @@ theme_set(theme_bw())
 #### Load in dataset
 ```{r}
 #install.packages('bit64')
-#Price <- fread("trainPrice.csv")
-Price <- fread("/Users/paulademacker/Documents/USA/Boston U/2. term/BA810/Team Project/trainPrice.csv")
+Price <- fread("trainPrice.csv")
+#Price <- fread("/Users/paulademacker/Documents/USA/Boston U/2. term/BA810/Team Project/trainPrice.csv")
 ```
 
 #### First few rows
@@ -68,30 +68,25 @@ unique(Price$heat_type)
 ```{r}
 Price[heat_type == ''][, .N]
 ```
-##### We can remove these empty string values to create dummy variables later
+
+##### We can remove these empty string and dash values to create dummy variables later
 ```{r}
 Price <- Price[heat_type != '']
 ```
-
-
 ```{r}
 Price[heat_fuel == ''][, .N]
 ```
-
-
 ```{r}
 Price[heat_fuel == '-'][, .N]
 ```
-##### We can remove these empty string values to create dummy variables later
 ```{r}
 Price <- Price[heat_fuel != '']
 ```
-
-##### We can remove these empty string values to create dummy variables later
 ```{r}
 Price <- Price[heat_fuel != '-']
 ```
 
+#####View the unique values in other columns
 ```{r}
 unique(Price$bathroom_count)
 ```
@@ -104,28 +99,34 @@ unique(Price$room_count)
 ```{r}
 unique(Price$front_door_structure)
 ```
+
+##### Count of values that are dashes
 ```{r}
 Price[front_door_structure == '-'][, .N]
 ```
 
-
-##### count of values that are empty strings
+##### Count of values that are empty strings
 ```{r}
 Price[front_door_structure == ''][, .N]
 ```
+
 ##### We can remove these empty string values to create dummy variables later
 ```{r}
 Price <- Price[front_door_structure != '']
 ```
+
 ##### We can remove these empty dash values to create dummy variables later
 ```{r}
 Price <- Price[front_door_structure != '-']
 ```
 
+##### View unique year of completion values
 ```{r}
 unique(Price$year_of_completion)
 ```
+
 #### Drop rows room_count as 8
+After examining the dataset, we determined that this was an outlier since only a very small number of apartments were shown as having 8 rooms
 ```{r}
 Price <- Price[room_count != 8]
 ```
@@ -150,30 +151,9 @@ str(Price)
 ```
 
 
-##### We can create dummy variables and convert them to factors
+##### Create dummy variables for use in later ML steps
+We will convert transaction_date, heat_type, heat_fuel, and front_door_structure
 ```{r}
-# Price <- fastDummies::dummy_cols(Price, select_columns = c("heat_fuel","heat_type","front_door_structure"))
-# 
-# Price <- Price[, heat_fuel_cogeneration:=as.factor(heat_fuel_cogeneration)]
-# Price <- Price[, heat_fuel_gas :=as.factor(heat_fuel_gas)]
-# Price <- Price[, heat_type_central:=as.factor(heat_type_central)]
-# Price <- Price[, heat_type_district:=as.factor(heat_type_district)]
-# Price <- Price[, heat_type_individual:=as.factor(heat_type_individual)]
-# Price <- Price[, front_door_structure_corridor:=as.factor(front_door_structure_corridor)]
-# Price <- Price[, front_door_structure_mixed:=as.factor(front_door_structure_mixed)]
-# Price <- Price[, front_door_structure_stairway:=as.factor(front_door_structure_stairway)]
-Price[,transaction_real_price := as.numeric(transaction_real_price)] 
-Price[,address_by_law := as.numeric(address_by_law)]
-str(Price)
-```
-
-```{r}
-unique(Price$transaction_date)
-unique(Price$heat_type)
-unique(Price$heat_fuel)
-unique(Price$front_door_structure)
-
-#I found transaction_date,heat_type, heat_fuel, front_door_structure didn't become dummy till here (Sylar)
 Price <- Price[transaction_date == "1~10", transaction_date:=0]
 Price <- Price[transaction_date == "11~20", transaction_date:=1]
 Price <- Price[transaction_date == "21~30", transaction_date:=2]
@@ -196,19 +176,9 @@ Price <- Price[front_door_structure == "stairway", front_door_structure:=1]
 Price <- Price[front_door_structure == "mixed", front_door_structure:=2]
 Price[,front_door_structure := as.numeric(front_door_structure)]
 
-str(Price)
+Price[,transaction_real_price := as.numeric(transaction_real_price)] 
+Price[,address_by_law := as.numeric(address_by_law)]
 ```
-
-
-
-
-
-
-
-
-
-
-
 
 
 #### Barchart showing real price and city
@@ -253,8 +223,8 @@ ggplot(Price, aes(x=heat_type, y = transaction_real_price)) +
 
 
 
-####Plotly Map showing locations of apartments
-Still working on getting colors to appear for prices
+#### Plotly Map showing locations of apartments
+We can see that all of the apartments are either in Seoul or Busan
 ```{r}
 # fig <- head(Price, 100000)
 # fig <- fig %>%
@@ -273,46 +243,6 @@ Still working on getting colors to appear for prices
 #       center = list(longitude = 35.963911, latitude = 127.919770))) 
 # 
 # fig
-```
-
-
-
-
-
-
-
-
-
-
-
-## Linear Regression
-#### Randomize the rows
-```{r}
-set.seed(42)
-rows <- sample(nrow(Price))
-Price <- Price[rows, ]
-```
-
-
-#### Linear model of price and city (the first 50000 observations)
-```{r}
-# ggplot(head(Price, 50000), aes(x = city
-# , y=transaction_real_price)) +
-#   geom_point(alpha = 0.4)+
-#   stat_smooth(
-#     method = "lm",
-#     color = "#C42126",
-#     se = FALSE,
-#     size = 1
-# )
-```
-
-
-
-#### Linear regression model of exclusive use area vs real price
-```{r}
-# ggplot(Price, aes(x = exclusive_use_area, y=transaction_real_price)) +
-#   geom_point(alpha = 0.4)
 ```
 
 
@@ -351,26 +281,10 @@ y_test <- dd_test$transaction_real_price
 
 
 
-# create our predictors
-
-# throwing some variables that seem to make sense to give it a try
-
-f1 <- as.formula(transaction_real_price ~ year_of_completion + exclusive_use_area +floor + total_parking_capacity_in_site+ total_household_count_in_sites +apartment_building_count_in_sites +heat_type + heat_fuel +supply_area + total_household_count_of_area_type +room_count +bathroom_count+front_door_structure)
-
-# matrix with x values
-x1_train_sample <- model.matrix(f1, dd_train)
-x1_test <- model.matrix(f1, dd_test)
-
-# get columns (for forward regression later)
-#for (col in names(Price))
-#{
- 
- # print(col) 
-  
-#}
+# fit the full model
 
 
-fit_lm1 <- lm(f1, dd_train)
+fit_lm1 <- lm(transaction_real_price ~ ., data=dd_train)
 
 
 yhat_train_lm1 <- predict(fit_lm1)
