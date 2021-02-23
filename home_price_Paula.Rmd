@@ -27,7 +27,6 @@ library(tree)
 library(randomForest)
 library(rpart)
 library(rpart.plot)
-
 theme_set(theme_bw())
 ```
 
@@ -284,7 +283,6 @@ Still working on getting colors to appear for prices
 
 
 
-
 ## Linear Regression
 #### Randomize the rows
 ```{r}
@@ -389,6 +387,10 @@ str(dd_train)
 
 
 class(Price$transaction_real_price)
+```
+
+```{r}
+summary(Price)
 ```
 
 
@@ -561,7 +563,6 @@ mse.test.ridge <- mean((y_test - yhat.test.ridge)^2)
 cat("Train MSE: ",mse.train.ridge)
 cat(" Test MSE: ",mse.test.ridge)
 #Test MSE is minimal lower than Train MSE
-
 ```
 
 #### Lasso Regression
@@ -601,6 +602,7 @@ plot(cv.price$size,cv.price$dev, type = "b")
 cv.price
 # size = 14 have the lowest cv error
 # which seems like there is no much to prune the decision tree
+
 ```
 
 ```{r}
@@ -618,6 +620,7 @@ tree.price.lec <- rpart(transaction_real_price ~ ., Price,subset = train,
 rpart.plot(tree.price.lec,type = 1)
 
 plotcp(tree.price)
+
 ```
 
 
@@ -652,8 +655,7 @@ tree.testy = Price[-train,transaction_real_price]
 tree.test = Price[-train]
 rf.price = randomForest(transaction_real_price ~ ., data = Price, subset = train, mtry = 8, importance = TRUE)
 yhat.rf = predict(rf.price, newdata = tree.test)
-mean((tree.testy-yhat.rf)^2)
-
+mean((tree.testy-yhat.rf)^2)a
 ```
 
 ```{r}

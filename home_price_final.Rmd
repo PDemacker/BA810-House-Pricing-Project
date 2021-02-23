@@ -34,8 +34,8 @@ theme_set(theme_bw())
 #### Load in dataset
 ```{r}
 #install.packages('bit64')
-#Price <- fread("trainPrice.csv")
-Price <- fread("/Users/paulademacker/Documents/USA/Boston U/2. term/BA810/Team Project/trainPrice.csv")
+Price <- fread("trainPrice.csv")
+#Price <- fread("/Users/paulademacker/Documents/USA/Boston U/2. term/BA810/Team Project/trainPrice.csv")
 ```
 
 #### First few rows
@@ -427,6 +427,7 @@ tree.test = Price[-train]
 tree.price = tree(transaction_real_price ~ .,Price,subset = train)
 summary(tree.price)
 ```
+
 ```{r}
 #plot(tree.price)
 #text(tree.price,pretty = 0)
@@ -452,14 +453,33 @@ set.seed(217)
 tree.price.lec <- rpart(transaction_real_price ~ ., Price,subset = train,
                     control = rpart.control(cp=0.01))
 rpart.plot(tree.price.lec,type = 1)
+```
 
-plotcp(tree.price)
+```{r}
+tree.yhat.lec = predict(tree.price.lec ,newdata=tree.test)
+mean((tree.yhat.lec - tree.testy)^2) 
 ```
 
 
 
-
 #### Bagging
+```{r}
+Price[,test:= 0]
+Price[sample(nrow(Price),100000),test:=1]
+
+Price.test =  Price[test==1]
+Price.train = Price[test==0]
+
+y.test = Price.test$transaction_real_price
+```
+
+```{r}
+set.seed(217)
+price.train.sample = Price.train[sample(nrow(Price.train),5000)]
+```
+
+
+# Trends of Test MSE as number of data in training growing (1% to 5%)
 ```{r}
 library(randomForest)
 set.seed(217)
@@ -473,23 +493,54 @@ yhat.bag = predict(bag.price, newdata = tree.test)
 test.mse = c(test.mse,mean((tree.testy-yhat.bag)^2))
 }
 test.mse 
-
 ```
 
 ```{r}
 plot(x=seq(1,5),test.mse)
 ```
 
-#### Random Forest
+#Bagging using 5000 rows as training 
 ```{r}
-
-train = sample(1:nrow(Price),(nrow(Price)/100))
+set.seed(217)
+train = sample(1:nrow(Price),5000)
 tree.testy = Price[-train,transaction_real_price]
 tree.test = Price[-train]
-rf.price = randomForest(transaction_real_price ~ ., data = Price, subset = train, mtry = 8, importance = TRUE)
+rf.price = randomForest(transaction_real_price ~ ., data = Price, subset = train, mtry=24, importance = TRUE)
 yhat.rf = predict(rf.price, newdata = tree.test)
 mean((tree.testy-yhat.rf)^2)
 
+```
+
+#### Random Forest
+#Method 1 from classes taking sample from training set
+
+```{r}
+fit.rndfor = randomForest(transaction_real_price~.,
+                          data=price.train.sample,
+                          ntree=500,
+                          mtry=5,
+                          importance=TRUE,
+                          do.trace=F)
+varImpPlot(fit.rndfor)
+
+```
+```{r}
+#Test MSE
+yhat.rndfor = predict(fit.rndfor,Price.test)
+mse.rndfor = mean((yhat.rndfor-y.test)^2)
+mse.rndfor
+```
+
+
+# Method 2 directly spliting training sets and test sets
+```{r}
+set.seed(217)
+train = sample(1:nrow(Price),5000)
+tree.testy = Price[-train,transaction_real_price]
+tree.test = Price[-train]
+rf.price = randomForest(transaction_real_price ~ ., data = Price, subset = train, mtry = 5, importance = TRUE)
+yhat.rf = predict(rf.price, newdata = tree.test)
+mean((tree.testy-yhat.rf)^2)
 ```
 
 ```{r}
@@ -504,7 +555,7 @@ varImpPlot(rf.price)
 ```{r}
 library(gbm)
 set.seed(217)
-train_sample = sample(1:nrow(Price),(nrow(Price)/10))
+train_sample = sample(1:nrow(Price),5000)
 tree.testy_sample = Price[-train_sample,transaction_real_price]
 boost.price = gbm(transaction_real_price ~ ., data = Price[train_sample,], distribution = "gaussian", n.trees = 5000, interaction.depth = 4 )
 summary(boost.price)
@@ -514,28 +565,6 @@ summary(boost.price)
 #Evaluate boosted tree model
 yhat.boost = predict(boost.price, newdata = Price[-train_sample,], n.trees = 5000)
 mean((tree.testy_sample - yhat.boost)^2)
-```
-
-
-
-
-```{r}
-set.seed(217)
-tree.price <- rpart(transaction_real_price ~ ., Price,subset = train,
-                    control = rpart.control(cp=0.01))
-rpart.plot(tree.price,type = 1)
-```
-
-
-
-```{r}
-plotcp(tree.price)
-```
-
-```{r}
-#Prune tree
-ptree = prune(tree.price,cp = tree.price$cptable[which.min(tree.price$cptable[,"xerror"]),"CP"])
-rpart.plot(ptree,type = 1)
 ```
 
 
