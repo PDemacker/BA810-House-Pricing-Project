@@ -70,6 +70,7 @@ Our Dataset contains the following features:
 
 #### Load in dataset
 ```{r}
+setwd("C:/Users/pmank/Dropbox/BU/BA810/group_project")
 Price <- fread("trainPrice.csv")
 ```
 
@@ -264,7 +265,7 @@ In this section, we used a number of machine learning techniques to predict the 
 * Boosting
 
 ## Drop useless columns
-Below, we will remove apartment_id, room_id, and key since these are not useful in prediction
+Below, we will remove apartment_id, room_id, and key since these are not useful in prediction. We also removed redundant dummy variables.
 ```{r}
 Price[,key := NULL]
 Price[,apartment_id := NULL]
@@ -273,7 +274,7 @@ Price[,heat_type := NULL]
 Price[,front_door_structure := NULL]
 Price[,heat_type_individual := NULL]
 Price[,front_door_structure_stairway := NULL]
-#prevent aliased coefficients
+# prevent aliased coefficients
 ```
  
 ## Setup test and train datasets
@@ -312,6 +313,10 @@ mse_test_lm1 <- mean((y_test - yhat_test_lm1)**2)
 paste("Linear Regression Test RMSE",sqrt(mse_test_lm1))
 ```
 
+A summary of the coefficient values in the model.
+```{r}
+summary(fit_lm1)
+```
 
 
 ## Forward Selection
@@ -430,7 +435,7 @@ mse.test.ridge <- mean((y_test - yhat.test.ridge)^2)
 cat("Train RMSE: ",sqrt(mse.train.ridge))
 cat(" Test RMSE: ",sqrt(mse.test.ridge))
 
-#Test MSE is minimal higher than Train MSE
+cat(" Best Lambda: ", fit.ridge$lambda.min)
 ```
 
 ## Lasso Regression
@@ -461,7 +466,7 @@ mse.test.lasso <- mean((y_test - yhat.test.lasso)^2)
 cat("Train RMSE: ",sqrt(mse.train.lasso))
 cat(" Test RMSE: ",sqrt(mse.test.lasso))
 
-# extract.coef(fit.lasso)
+cat(" Best Lambda: ", fit.lasso$lambda.min)
 ```
 
 
@@ -524,23 +529,32 @@ rpart.plot(tree.price.lec,type = 1)
 #### Bagging using 5000 rows as training 
 We decided to use 5000 rows for compute resource reasons. We then used the remaining data to calculate the test MSE. We found that there was a significant improvement in the RMSE, which we calculate to be 101,033,509.293 Korean Won. Also, we found that when we increased the number of observations in the train dataset, our MSE went down significantly. 
 ```{r}
-
-rf.price = randomForest(transaction_real_price ~ ., data = Price, subset = row_index, mtry=24, importance = TRUE)
-yhat.rf = predict(rf.price, newdata = dd_test)
-mean((y_test-yhat.rf)^2)
-
+bag.price = randomForest(transaction_real_price ~ ., data = dd_train, mtry=21, importance = TRUE)
+yhat.bag.train = predict(bag.price, newdata = dd_train)
+cat("RMSE train: ", sqrt(mean((y_train-yhat.bag.train)^2)))
 ```
+
+
+```{r}
+yhat.bag = predict(bag.price, newdata = dd_test)
+cat(" RMSE test: ", sqrt(mean((y_test-yhat.bag)^2)))
+```
+
 
 
 
 ## Random Forest
 This process is similar to bagging; we took a sample of 5000 observations from the dataset. We then ran the random forest model on out sample, and computed an MSE. The MSE was again an improvement over some of the less flexible models earlier in the report. We calculated a test MSE of 102,026,222.12 Korean Won. Due to the fact that we are only able to take a sample of 5000 observations, the model has higher variability since the MSE can change significantly every time we run the model.
 ```{r}
-
 rf.price = randomForest(transaction_real_price ~ ., data = Price, subset = row_index, mtry = 5, importance = TRUE)
 
+yhat.rf.train = predict(rf.price, newdata = dd_train)
+cat("RMSE train: ", sqrt(mean((y_train-yhat.rf.train)^2)))
+```
+
+```{r}
 yhat.rf = predict(rf.price, newdata = dd_test)
-mean((y_test-yhat.rf)^2)
+cat(" RMSE test: ", sqrt(mean((y_test-yhat.rf)^2)))
 ```
 
 
@@ -552,27 +566,36 @@ The visualization below reveals that supply area is relatively more important co
 varImpPlot(rf.price)
 ```
 
-#### Boosting
-the boosting process reveals similar finding to what we saw with random forest above. Again, we can see that supply area, and exclusive use area are both relatively more important compared to the other predictors.
+
+
+
+# Boosting
+the boosting process reveals similar finding to what we saw with random forest above. Again, we can see that supply area, and exclusive use area are both relatively more important compared to the other predictors. 
+
+In the below model, we started with just 5000 trees. We then go on to perofrm feature engineering, and use cross validation to find the optimal number of trees.
 ```{r}
 boost.price = gbm(transaction_real_price ~ ., data =row_index, distribution = "gaussian", n.trees = 5000, interaction.depth = 4 )
 summary(boost.price)
 
 ```
-The results of the boosting model reveal an RMSE of 81,283,479.2562 Korean Won. This model produced the lowest error of any of the models in the report.
+
+
+The results of the boosting model reveal the following RMSEs in Korean Won. This model produced the lowest error of any of the models in the report.
+```{r}
+yhat.boost.train = predict(boost.price, newdata =dd_train, n.trees = 5000)
+cat("RMSE train: ", sqrt(mean((y_train - yhat.boost.train)^2)))
+```
+
+
 ```{r}
 #Evaluate boosted tree model
 yhat.boost = predict(boost.price, newdata =dd_test, n.trees = 5000)
-mean((y_test - yhat.boost)^2)
+cat(" RMSE test: ", sqrt(mean((y_test - yhat.boost)^2)))
 ```
 
 
 
 
-
-
-
-# Boosting
 #### Feature Engineering
 ```{r}
 dd_train_engineering <- copy(dd_train)
@@ -617,16 +640,18 @@ dd_test_engineering[, month := as.numeric(substr(transaction_year_month, 5,6))]
 # select a random sample of 10000 observations
 train_sample_index = sample(1:nrow(dd_train),nrow(dd_train)*4/5)
 train_sample = dd_train[train_sample_index,]
-tree.testy_sample = dd_test[-(sample(nrow(train_sample))), transaction_real_price]
+tree.testy_sample = dd_test[-train_sample_index, transaction_real_price]
 
 boost.price.cv <- gbm(transaction_real_price ~ ., data = train_sample, distribution = "gaussian", n.trees = 5000, interaction.depth = 4, cv.folds=10)
 
-# predict on the test dataset using the recommended number of trees
-predictions <- predict(boost.price.cv, newdata=dd_test, n.trees=which.min(boost.price.cv$cv.error))
+yhat.boost.cv.train = predict(boost.price.cv, newdata = train_sample, n.trees = which.min(boost.price.cv$cv.error))
 
-boost_RMSE <- sqrt(mean((dd_test$transaction_real_price - predictions)**2))
-paste("Boost RMSE",boost_RMSE)
+cat("Train RMSE: ", sqrt(mean((train_sample$transaction_real_price - yhat.boost.cv.train)^2)))
+# predict on the test dataset using the recommended number of trees
+predictions <- predict(boost.price.cv, newdata=dd_train[-train_sample_index,], n.trees=which.min(boost.price.cv$cv.error))
+cat(" Test RMSE: ", sqrt(mean(tree.testy_sample - predictions)**2))
 ```
+
 The most significant features according to the model.
 ```{r}
 summary(boost.price.cv)
@@ -634,12 +659,9 @@ summary(boost.price.cv)
 
 
 
+
 #### Boosting: cross validation with feature engineering
-
 ```{r}
-# move the target variable to be the first feature
-#setcolorder(price_engineering, c("transaction_real_price", setdiff(names(price_engineering), "transaction_real_price")))
-
 # select a random sample of 10000 observations
 train_sample_index = sample(1:nrow(dd_train_engineering),nrow(dd_train_engineering)*4/5)
 train_sample = dd_train_engineering[train_sample_index,]
@@ -647,50 +669,18 @@ tree.testy_sample = dd_test_engineering[-train_sample_index, transaction_real_pr
 
 boost.price.cv <- gbm(transaction_real_price ~ ., data = train_sample, distribution = "gaussian", n.trees = 5000, interaction.depth = 4, cv.folds=10)
 
+yhat.boost.train = predict(boost.price.cv, newdata = train_sample, n.trees = which.min(boost.price.cv$cv.error))
+cat("RMSE train: ", sqrt(mean((train_sample$transaction_real_price - yhat.boost.train)^2)))
+
 # predict on the test dataset using the recommended number of trees
 predictions <- predict(boost.price.cv, newdata=dd_test_engineering, n.trees=which.min(boost.price.cv$cv.error))
 
-boost_RMSE <- sqrt(mean((dd_test_engineering$transaction_real_price - predictions)**2))
-paste("Boost RMSE",boost_RMSE)
+cat(" RMSE test: ", sqrt(mean((dd_test_engineering$transaction_real_price - predictions)**2)))
 ```
 The most significant features according to the model.
 ```{r}
 summary(boost.price.cv)
 ```
-
-
-
-
-
-
-```{r}
-train_sample = sample(1:nrow(price_engineering),10000)
-tree.testy_sample = price_engineering[-train_sample,transaction_real_price]
-
-boost.price = gbm(transaction_real_price ~ ., data = price_engineering[train_sample,], distribution = "gaussian", n.trees = 20000, interaction.depth = 4 )
-summary(boost.price)
-
-```
-
-
-```{r}
-
-
-
-#Evaluate boosted tree model
-yhat.boost = predict(boost.price, newdata = price_engineering[-train_sample,], n.trees = 20000)
-#mean((tree.testy_sample - yhat.boost)*(tree.testy_sample - yhat.boost))
-
-boost_RMSE <- sqrt(mean((tree.testy_sample - yhat.boost)**2))
-paste("Boost RMSE",boost_RMSE)
-```
-
-
-
-
-
-
-
 
 
 
