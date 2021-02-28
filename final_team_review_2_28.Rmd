@@ -337,21 +337,75 @@ step.model <- train(transaction_real_price ~., data = dd_train,
 step.model$results
 
 ```
+```{r}
+step.model_t <- train(transaction_real_price ~., data = dd_test,
+      method = "leapForward",
+       tuneGrid = data.frame(nvmax = 1:23),
+       trControl = train.control
+       )
+step.model_t$results
+```
+```{r}
+x1 <- step.model$results[,2]
+x2 <- step.model_t$results[,2]
+plot(x1,type = "o",col = "red",xlab = "Number of Variables Added", ylab = "RMSE",
+   main = "Forward Train&Test RMSE")
+lines(x2, type = "o", col = "blue")
+legend("topright", 
+  legend = c("Train", "Test"),
+  col = c("red","blue"), 
+  pch = c(1,1), 
+  bty = "n", 
+  pt.cex = 2, 
+  cex = 1.2, 
+  text.col = "black", 
+  horiz = F , 
+  inset = c(0.1, 0.1))
+```
 
 
 ## Backward selection
 In this model, we came to the same conclusion that the most optimal model has all 23 variables which is the same as the full linear regression model.
 ```{r}
+#Backward train
 # Set up repeated k-fold cross-validation
 train.control <- trainControl(method = "cv", number = 10)
 # Train the model
-step.model <- train(transaction_real_price ~., data = dd_train,
+step.model_b <- train(transaction_real_price ~., data = dd_train,
                     method = "leapBackward", 
                     tuneGrid = data.frame(nvmax = 1:23),
                     trControl = train.control
                     )
-step.model$results
+step.model_b$results
 ```
+
+```{r}
+#backward test
+step.model_bt <- train(transaction_real_price ~., data = dd_test,
+      method = "leapBackward",
+       tuneGrid = data.frame(nvmax = 1:23),
+       trControl = train.control
+       )
+step.model_bt$results
+```
+```{r}
+x1 <- step.model_b$results[,2]
+x2 <- step.model_bt$results[,2]
+plot(x1,type = "o",col = "red",xlab = "Number of Variables Added", ylab = "RMSE",
+   main = "Backward Train&Test RMSE")
+lines(x2, type = "o", col = "blue")
+legend("topright", 
+  legend = c("Train", "Test"),
+  col = c("red","blue"), 
+  pch = c(1,1), 
+  bty = "n", 
+  pt.cex = 2, 
+  cex = 1.2, 
+  text.col = "black", 
+  horiz = F , 
+  inset = c(0.1, 0.1))
+```
+
 #### Setup for Ridge and Lasso Regression
 We created a new formula that includes all 23 predictors, and split out test and train datasets
 ```{r}
