@@ -329,31 +329,22 @@ train.control <- trainControl(method = "cv", number = 10)
 
 # Train the model
 
-step.model <- train(transaction_real_price ~., data = dd_train,
+step.model_f <- train(transaction_real_price ~., data = dd_train,
       method = "leapForward",
        tuneGrid = data.frame(nvmax = 1:23),
        trControl = train.control
        )
-step.model$results
+step.model_f$results
 
 ```
+
 ```{r}
-step.model_t <- train(transaction_real_price ~., data = dd_test,
-      method = "leapForward",
-       tuneGrid = data.frame(nvmax = 1:23),
-       trControl = train.control
-       )
-step.model_t$results
-```
-```{r}
-x1 <- step.model$results[,2]
-x2 <- step.model_t$results[,2]
-plot(x1,type = "o",col = "red",xlab = "Number of Variables Added", ylab = "RMSE",
-   main = "Forward Train&Test RMSE")
-lines(x2, type = "o", col = "blue")
+x1f <- step.model$results[,2]
+plot(x1f,type = "o",col = "red",xlab = "Number of Variables Added", ylab = "RMSE",
+   main = "Forward Train RMSE")
 legend("topright", 
-  legend = c("Train", "Test"),
-  col = c("red","blue"), 
+  legend = c("Train"),
+  col = c("red"), 
   pch = c(1,1), 
   bty = "n", 
   pt.cex = 2, 
@@ -379,24 +370,14 @@ step.model_b <- train(transaction_real_price ~., data = dd_train,
 step.model_b$results
 ```
 
-```{r}
-#backward test
-step.model_bt <- train(transaction_real_price ~., data = dd_test,
-      method = "leapBackward",
-       tuneGrid = data.frame(nvmax = 1:23),
-       trControl = train.control
-       )
-step.model_bt$results
-```
+
 ```{r}
 x1 <- step.model_b$results[,2]
-x2 <- step.model_bt$results[,2]
 plot(x1,type = "o",col = "red",xlab = "Number of Variables Added", ylab = "RMSE",
-   main = "Backward Train&Test RMSE")
-lines(x2, type = "o", col = "blue")
+   main = "Backward Train RMSE")
 legend("topright", 
-  legend = c("Train", "Test"),
-  col = c("red","blue"), 
+  legend = c("Train"),
+  col = c("red"), 
   pch = c(1,1), 
   bty = "n", 
   pt.cex = 2, 
