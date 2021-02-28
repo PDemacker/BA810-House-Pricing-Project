@@ -70,7 +70,7 @@ Our Dataset contains the following features:
 
 #### Load in dataset
 ```{r}
-Price <- fread("trainPrice.csv")
+Price <- fread("/Users/paulademacker/Documents/USA/Boston U/2. term/BA810/Team Project/trainPrice.csv")
 ```
 
 #### First few rows
@@ -389,6 +389,7 @@ mse.test.ridge <- mean((y_test - yhat.test.ridge)^2)
 
 cat("Train RMSE: ",sqrt(mse.train.ridge))
 cat(" Test RMSE: ",sqrt(mse.test.ridge))
+cat(" Best Lambda: ", fit.ridge$lambda.min)
 
 #Test MSE is minimal higher than Train MSE
 ```
@@ -420,8 +421,8 @@ mse.test.lasso <- mean((y_test - yhat.test.lasso)^2)
 
 cat("Train RMSE: ",sqrt(mse.train.lasso))
 cat(" Test RMSE: ",sqrt(mse.test.lasso))
+cat(" Best Lambda: ", fit.lasso$lambda.min)
 
-# extract.coef(fit.lasso)
 ```
 
 
