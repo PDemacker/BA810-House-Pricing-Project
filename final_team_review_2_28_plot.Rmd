@@ -70,7 +70,7 @@ Our Dataset contains the following features:
 
 #### Load in dataset
 ```{r}
-setwd("C:/Users/pmank/Dropbox/BU/BA810/group_project")
+# setwd("C:/Users/pmank/Dropbox/BU/BA810/group_project")
 Price <- fread("trainPrice.csv")
 ```
 
@@ -300,6 +300,7 @@ We started by trying linear regression model. We used an 80/20 split between our
 For this model, we calculated a Train RMSE score of 188,332,311 Korean Won. We calculated a Test RMSE score of 188,544,540 Korean Won.
 ```{r}
 # our response variables to use later
+set.seed(810)
 y_train <- dd_train$transaction_real_price
 y_test <- dd_test$transaction_real_price
 
@@ -324,7 +325,7 @@ In forward selection, we used cross validation to split our data into 10 groups.
 
 In the output below, we can see that there is a separate results for reach model, starting with just one explanatory variable, and ending with a model with all 24 variables.
 
-In this model, our lowest RMSE was 188,324,643 Korean Won with all 23 variables.
+In this model, our lowest RMSE was 188,321,979 Korean Won with 21 variables.
 
 
 ```{r}
@@ -342,9 +343,14 @@ step.model_f <- train(transaction_real_price ~., data = dd_train,
 step.model_f$results
 
 ```
+Two variable we exclude is transaction_date and front_door_structure_mixed
+```{r}
+#Choose the best tuned model
+summary(step.model_f$finalModel)
+```
 
 ```{r}
-x1f <- step.model$results[,2]
+x1f <- step.model_f$results[,2]
 plot(x1f,type = "o",col = "red",xlab = "Number of Variables Added", ylab = "RMSE",
    main = "Forward Train RMSE")
 legend("topright", 
@@ -361,8 +367,9 @@ legend("topright",
 
 
 ## Backward selection
-In this model, we came to the same conclusion that the most optimal model has all 23 variables which is the same as the full linear regression model.
+In this model, we came to the same conclusion that the most optimal model has 21 variable with the lowest RMSE of 188,321,979 Korean Won.
 ```{r}
+set.seed(810)
 #Backward train
 # Set up repeated k-fold cross-validation
 train.control <- trainControl(method = "cv", number = 10)
@@ -374,7 +381,11 @@ step.model_b <- train(transaction_real_price ~., data = dd_train,
                     )
 step.model_b$results
 ```
-
+Two variable we exclude is transaction_date and front_door_structure_mixed
+```{r}
+#Choose the best tuned model
+summary(step.model_b$finalModel)
+```
 
 ```{r}
 x1 <- step.model_b$results[,2]
@@ -390,6 +401,21 @@ legend("topright",
   text.col = "black", 
   horiz = F , 
   inset = c(0.1, 0.1))
+```
+Since the model chosen by Forward/Backward is the same containing the same variables, let's fit it to calculate the final test RMSE. So, Forward/Backward Selection Regression Test RMSE is 188,550,321 Korean Won.
+```{r}
+# Fit the model chosen by forward and backward
+set.seed(810)
+train.control <- trainControl(method = "cv", number = 10)
+# Train the model
+fit_fb <- train(transaction_real_price ~ city + transaction_year_month  + year_of_completion + exclusive_use_area + floor + longitude + latitude + address_by_law + total_parking_capacity_in_site + total_household_count_in_sites + apartment_building_count_in_sites + tallest_building_in_sites + lowest_building_in_sites + heat_type_central +heat_type_district + heat_fuel + supply_area + total_household_count_of_area_type + room_count + bathroom_count +front_door_structure_corridor, data=dd_train, method = "lm",
+               trControl = train.control)
+# Summarize the results
+print(fit_fb)
+
+yhat_test_fb <- predict(fit_fb, dd_test)
+mse_test_fb <- mean((y_test - yhat_test_fb)**2)
+paste("Forward/Backward Selection Regression Test RMSE",sqrt(mse_test_fb))
 ```
 
 #### Setup for Ridge and Lasso Regression
